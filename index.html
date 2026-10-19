@@ -1,0 +1,1000 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SkyGuard AI</title>
+<meta name="theme-color" content="#0e1b29">
+<meta name="description" content="SkyGuard AI: an AI camera that tells pigeons from other birds and sends only the pigeons away, with sound and without harm.">
+<link rel="icon" href="app/icon.svg" type="image/svg+xml">
+<style>body{margin:0}img{max-width:100%}</style>
+</head>
+<body>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: camera viewfinder. Night-sky navy bands with gold and HUD-green marks frame each page head; content sits on a cool sky-grey ground below. */
+:root{
+  --bg:#edf1f4; --panel:#ffffff; --sunk:#e3e9ee; --fg:#0f1e2c; --muted:#556574; --line:#d3dbe2;
+  --accent:#a8711a; --accent-2:#c9933f; --target:#cc4a06; --safe:#1764b8; --ok:#26744a;
+  --hero:#0e1b29; --hero-2:#16283a; --hero-fg:#eef3f7; --hero-muted:#a8b8c7; --hud:#5cf0a0; --gold:#e2ac55;
+  --display:'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+  --body:'IBM Plex Sans', 'Segoe UI', system-ui, sans-serif;
+  --mono:'IBM Plex Mono', ui-monospace, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0a121a; --panel:#111d28; --sunk:#0d1821; --fg:#e5ecf2; --muted:#98a9b8; --line:#22323f;
+  --accent:#e2ac55; --accent-2:#c9933f; --target:#ff7a33; --safe:#5aa7ff; --ok:#5cc184;
+  --hero:#07101a; --hero-2:#0f1d2b; --hero-fg:#eef3f7; --hero-muted:#a8b8c7; --hud:#5cf0a0; --gold:#e2ac55; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0a121a; --panel:#111d28; --sunk:#0d1821; --fg:#e5ecf2; --muted:#98a9b8; --line:#22323f;
+  --accent:#e2ac55; --accent-2:#c9933f; --target:#ff7a33; --safe:#5aa7ff; --ok:#5cc184;
+  --hero:#07101a; --hero-2:#0f1d2b; --hero-fg:#eef3f7; --hero-muted:#a8b8c7; --hud:#5cf0a0; --gold:#e2ac55; color-scheme:dark}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15.5px;line-height:1.55}
+a{color:var(--accent)}
+main [id]{scroll-margin-top:90px}
+.in{max-width:1240px;margin:0 auto;padding-inline:20px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--fg);color:var(--bg);padding:8px 12px;border-radius:6px;z-index:50}
+.skip:focus{left:12px}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+
+/* ---------- top bar ---------- */
+.topbar{position:sticky;top:env(safe-area-inset-top,0px);z-index:20;background:color-mix(in srgb, var(--hero) 92%, transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid rgba(255,255,255,.08)}
+.topbar .in{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px 20px;padding-block:10px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--hero-fg);font-family:var(--display);font-weight:800;font-size:20px;letter-spacing:-.3px}
+.brand b{color:var(--gold);font-weight:800}
+.nav{display:flex;flex-wrap:wrap;gap:2px;margin:0;padding:0;list-style:none}
+.nav a{position:relative;display:inline-flex;align-items:center;min-height:42px;padding:0 14px;text-decoration:none;color:var(--hero-muted);font-weight:500;font-size:15px;border-radius:8px}
+.nav a:hover{color:var(--hero-fg);background:rgba(255,255,255,.06)}
+.nav a[aria-current="page"]{color:var(--hero-fg)}
+.nav a[aria-current="page"]::after{content:"";position:absolute;left:14px;right:14px;bottom:4px;height:2px;background:var(--gold);border-radius:2px}
+
+/* ---------- hero + page heads (fixed night-sky look in both themes) ---------- */
+.hero,.phead{position:relative;background:var(--hero);color:var(--hero-fg);overflow:hidden}
+.hero::before,.phead::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(rgba(255,255,255,.045) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.045) 1px,transparent 1px);
+  background-size:48px 48px;mask-image:linear-gradient(180deg,#000 30%,transparent 100%);-webkit-mask-image:linear-gradient(180deg,#000 30%,transparent 100%)}
+.hero .in{position:relative;padding-block:56px 48px;display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr);gap:40px;align-items:center}
+@media (max-width:900px){.hero .in{grid-template-columns:minmax(0,1fr);padding-block:40px 36px}}
+.vf{position:relative;padding:28px 30px}
+.vf::before,.vf::after,.vf i::before,.vf i::after{content:"";position:absolute;width:26px;height:26px;border-color:var(--hud);border-style:solid}
+.vf::before{left:0;top:0;border-width:3px 0 0 3px}
+.vf::after{right:0;top:0;border-width:3px 3px 0 0}
+.vf i::before{left:0;bottom:0;border-width:0 0 3px 3px}
+.vf i::after{right:0;bottom:0;border-width:0 3px 3px 0}
+.tag{display:inline-flex;align-items:center;gap:8px;font-family:var(--mono);font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--hud);margin:0 0 14px}
+.tag::before{content:"";width:8px;height:8px;border-radius:50%;background:#ff5a5f;box-shadow:0 0 0 4px rgba(255,90,95,.18)}
+.hero h1{font-family:var(--display);font-weight:800;font-size:clamp(38px,6vw,72px);line-height:.98;letter-spacing:-1.5px;margin:0;text-wrap:balance}
+.hero h1 em{font-style:normal;color:var(--gold)}
+.hero p.lede{color:var(--hero-muted);font-size:18px;line-height:1.6;max-width:56ch;margin:18px 0 0;text-wrap:pretty}
+.cta{display:flex;flex-wrap:wrap;gap:10px;margin-top:26px}
+.btn{display:inline-flex;align-items:center;gap:8px;min-height:46px;padding:0 20px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;border:1px solid transparent;cursor:pointer}
+.btn.gold{background:var(--gold);color:#16120a}
+.btn.gold:hover{background:#ecbd6e}
+.btn.line{color:var(--hero-fg);border-color:rgba(255,255,255,.25)}
+.btn.line:hover{background:rgba(255,255,255,.07)}
+.btn.ink{background:var(--fg);color:var(--bg)}
+.btn.soft{color:var(--fg);border-color:var(--line);background:var(--panel)}
+.kpis{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.1);border-radius:14px;overflow:hidden;margin:0}
+.kpis div{background:var(--hero-2);padding:20px 20px 18px;display:flex;flex-direction:column;gap:4px}
+.kpis dt{order:2;color:var(--hero-muted);font-size:13.5px;line-height:1.35}
+.kpis dd{order:1;margin:0;font-family:var(--display);font-weight:800;font-size:clamp(30px,3.6vw,40px);line-height:1;font-variant-numeric:tabular-nums;color:var(--hero-fg)}
+.kpis dd small{font-size:.5em;color:var(--gold);margin-left:2px}
+.kpi-note{grid-column:1/-1;background:var(--hero-2);color:var(--hero-muted);font-family:var(--mono);font-size:11.5px;letter-spacing:.4px;padding:10px 20px}
+
+.phead .in{position:relative;padding-block:40px 38px;display:flex;flex-direction:column;gap:12px}
+.crumbs{display:flex;flex-wrap:wrap;gap:8px;font-family:var(--mono);font-size:12.5px;color:var(--hero-muted)}
+.crumbs a{color:var(--hud);text-decoration:none}
+.crumbs a:hover{text-decoration:underline}
+.phead h1{font-family:var(--display);font-weight:800;font-size:clamp(32px,4.6vw,54px);line-height:1.02;letter-spacing:-1px;margin:0;text-wrap:balance}
+.phead h1 em{font-style:normal;color:var(--gold)}
+.phead p{color:var(--hero-muted);font-size:17.5px;max-width:62ch;margin:0;text-wrap:pretty}
+
+/* ---------- content ---------- */
+.wrap{max-width:1240px;margin:0 auto;padding-inline:20px;padding-block:40px 56px;display:flex;flex-direction:column;gap:48px}
+.sec{display:flex;flex-direction:column;gap:18px}
+.sec-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:10px 20px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:1.4px;text-transform:uppercase;color:var(--accent);margin:0 0 6px}
+.h2{font-family:var(--display);font-weight:800;font-size:clamp(24px,3vw,34px);line-height:1.08;letter-spacing:-.5px;margin:0;text-wrap:balance}
+.h3{font-family:var(--display);font-weight:700;font-size:19px;line-height:1.2;margin:0}
+.muted{color:var(--muted)}
+.lead{font-size:17px;line-height:1.65;max-width:66ch;margin:0;color:var(--muted);text-wrap:pretty}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:18px}
+@media (max-width:860px){.grid3,.grid2{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.card p{margin:0;color:var(--muted);line-height:1.6}
+.ico{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;background:var(--hero);color:var(--gold);flex-shrink:0}
+
+/* ---------- simulator (home) ---------- */
+.simhead{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px}
+.status{font-family:var(--mono);font-size:13px;display:flex;align-items:center;gap:8px;padding:7px 13px;border:1px solid var(--line);border-radius:999px;background:var(--panel)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px color-mix(in srgb, var(--ok) 20%, transparent)}
+.dot.paused{background:var(--muted);box-shadow:none}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:18px;align-items:start}
+@media (max-width:920px){.main{grid-template-columns:minmax(0,1fr)}}
+.console{background:var(--hero);border-radius:16px;padding:10px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.console-bar{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px;padding:4px 6px 0;font-family:var(--mono);font-size:12px;color:var(--hero-muted);letter-spacing:.4px}
+.console-bar b{color:var(--hud);font-weight:600}
+.cam{position:relative;border-radius:10px;overflow:hidden;background:#0d1117}
+canvas#scene{display:block;width:100%;height:auto;aspect-ratio:16/10}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--hero-muted);padding:2px 6px 4px}
+.legend i{display:inline-block;width:12px;height:12px;border:2px solid;border-radius:2px;margin-right:6px;vertical-align:-2px}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.panel h2,.panel h3{font-family:var(--display);font-size:18px;font-weight:700;margin:0}
+.ctl{display:flex;flex-direction:column;gap:4px}
+.ctl label{display:flex;justify-content:space-between;gap:8px;font-size:13.5px;font-weight:600}
+.ctl label output{font-family:var(--mono);font-weight:400;color:var(--accent)}
+.ctl small{color:var(--muted);font-size:12.5px;line-height:1.45}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.row{display:flex;flex-wrap:wrap;gap:8px}
+button,select{font:inherit;font-size:14px;border-radius:9px;border:1px solid var(--line);background:var(--sunk);color:var(--fg);padding:8px 12px;cursor:pointer;min-height:42px}
+button.primary{background:var(--fg);color:var(--bg);border-color:var(--fg);font-weight:600;min-width:96px}
+.check{display:flex;align-items:center;gap:10px;font-size:13.5px;font-weight:500}
+.check input{width:18px;height:18px;accent-color:var(--accent);flex-shrink:0}
+.stats{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:12px}
+@media (max-width:1040px){.stats{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.tile b{font-family:var(--display);font-size:30px;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.05}
+.tile span{font-size:12.5px;color:var(--muted);line-height:1.35}
+.tile.t{border-top:3px solid var(--target)} .tile.t b{color:var(--target)}
+.tile.s{border-top:3px solid var(--safe)} .tile.s b{color:var(--safe)}
+.lower{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,1fr) minmax(0,1fr);gap:18px}
+@media (max-width:1040px){.lower{grid-template-columns:minmax(0,1fr)}}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;font-family:var(--mono);font-size:12.5px;font-variant-numeric:tabular-nums;width:100%}
+th,td{padding:7px 7px;text-align:right;border-bottom:1px solid var(--line);white-space:nowrap}
+th:first-child,td:first-child{text-align:left}
+thead th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.5px;text-transform:uppercase}
+td.hit{color:var(--ok);font-weight:600}
+td.fp{color:var(--target);font-weight:600}
+.note{font-size:12.5px;color:var(--muted);line-height:1.5;margin:0}
+.log{list-style:none;margin:0;padding:0;font-family:var(--mono);font-size:12.5px;display:flex;flex-direction:column;gap:5px;max-height:270px;overflow:auto}
+.log li{display:flex;gap:8px}
+.log time{color:var(--muted);flex-shrink:0}
+.log .t{color:var(--target)} .log .s{color:var(--safe)} .log .o{color:var(--ok)}
+#hear{width:100%;height:auto;display:block}
+.copied{font-size:12px;color:var(--ok)}
+
+/* ---------- about ---------- */
+.goal{gap:14px}
+.goal .h3{font-size:21px}
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.split>div{padding:28px;display:flex;flex-direction:column;gap:12px}
+.split>div+div{border-left:1px solid var(--line);background:var(--sunk)}
+@media (max-width:860px){.split{grid-template-columns:minmax(0,1fr)}.split>div+div{border-left:0;border-top:1px solid var(--line)}}
+.split p{margin:0;color:var(--muted);line-height:1.65}
+.quote{font-family:var(--display);font-weight:700;font-size:clamp(22px,2.6vw,30px);line-height:1.2;letter-spacing:-.4px;margin:0;color:var(--fg);text-wrap:balance}
+.quote em{font-style:normal;color:var(--accent)}
+.spec{display:grid;grid-template-columns:minmax(0,190px) minmax(0,1fr);margin:0;border-top:1px solid var(--line)}
+.spec dt,.spec dd{margin:0;padding:11px 0;border-bottom:1px solid var(--line)}
+.spec dt{color:var(--muted);font-size:14px;padding-right:12px}
+.spec dd{font-weight:600}
+@media (max-width:520px){.spec{grid-template-columns:minmax(0,1fr)}.spec dt{border-bottom:0;padding-bottom:0}}
+.ph{color:var(--muted);font-style:italic;font-weight:500}
+
+/* ---------- product ---------- */
+.device{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px;align-items:center}
+@media (max-width:860px){.device{grid-template-columns:minmax(0,1fr)}}
+.device-art{background:var(--hero);border-radius:18px;padding:18px;min-width:0}
+.device-art svg{display:block;width:100%;height:auto}
+.pipe{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;counter-reset:s;position:relative}
+.pipe::before{content:"";position:absolute;left:24px;right:24px;top:23px;height:2px;background:repeating-linear-gradient(90deg,var(--accent) 0 8px,transparent 8px 14px)}
+@media (max-width:980px){.pipe{grid-template-columns:repeat(2,minmax(0,1fr))}.pipe::before{display:none}}
+@media (max-width:520px){.pipe{grid-template-columns:minmax(0,1fr)}}
+.pipe li{counter-increment:s;position:relative;display:flex;flex-direction:column;gap:8px;min-width:0}
+.pipe li::before{content:counter(s);font-family:var(--display);font-weight:800;font-size:17px;width:48px;height:48px;border-radius:50%;background:var(--hero);color:var(--gold);display:flex;align-items:center;justify-content:center;border:3px solid var(--bg)}
+.pipe b{font-family:var(--display);font-size:18px}
+.pipe span{color:var(--muted);font-size:14.5px;line-height:1.55}
+.bignum{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+@media (max-width:860px){.bignum{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.bignum div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px;display:flex;flex-direction:column;gap:4px}
+.bignum b{font-family:var(--display);font-weight:800;font-size:34px;line-height:1;font-variant-numeric:tabular-nums}
+.bignum span{color:var(--muted);font-size:13.5px;line-height:1.4}
+.cmp{font-family:var(--body);font-size:14.5px}
+.cmp th,.cmp td{text-align:center;white-space:normal;padding:12px 10px}
+.cmp th:first-child,.cmp td:first-child{text-align:left;font-weight:600}
+.cmp tr.us td{background:color-mix(in srgb, var(--gold) 14%, transparent)}
+.cmp tr.us td:first-child{border-radius:8px 0 0 8px}
+.cmp tr.us td:last-child{border-radius:0 8px 8px 0}
+.mk{display:inline-flex;align-items:center;justify-content:center;width:26px;height:26px;border-radius:50%}
+.mk.y{background:color-mix(in srgb, var(--ok) 16%, transparent);color:var(--ok)}
+.mk.n{background:color-mix(in srgb, var(--target) 14%, transparent);color:var(--target)}
+
+/* ---------- contact ---------- */
+.contact-line{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-family:var(--mono);font-size:14px}
+.contact-line code{user-select:all;background:var(--sunk);border:1px solid var(--line);border-radius:8px;padding:8px 12px;overflow-wrap:anywhere}
+
+/* ---------- site map ---------- */
+.tree{display:flex;flex-direction:column;align-items:center;gap:0}
+.tree-root{display:flex;flex-direction:column;align-items:center;gap:4px;background:var(--hero);color:var(--hero-fg);border-radius:14px;padding:16px 26px;text-decoration:none;position:relative}
+.tree-root b{font-family:var(--display);font-size:22px;font-weight:800}
+.tree-root span{font-family:var(--mono);font-size:12px;color:var(--hud)}
+.tree-stem{width:2px;height:28px;background:var(--accent)}
+.branches{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;width:100%;position:relative}
+.branches::before{content:"";position:absolute;top:0;left:12.5%;right:12.5%;height:2px;background:var(--accent)}
+.branches>li{display:flex;flex-direction:column;align-items:center;padding-top:26px;position:relative;min-width:0}
+.branches>li::before{content:"";position:absolute;top:0;left:50%;width:2px;height:26px;background:var(--accent)}
+.bnode{width:100%;background:var(--panel);border:1px solid var(--line);border-top:4px solid var(--gold);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.bnode>a{font-family:var(--display);font-weight:800;font-size:20px;color:var(--fg);text-decoration:none;display:flex;align-items:center;justify-content:space-between;gap:8px}
+.bnode>a span{font-family:var(--mono);font-size:11.5px;font-weight:400;color:var(--muted)}
+.bnode>a:hover{color:var(--accent)}
+.bnode ul{list-style:none;margin:0;padding:0 0 0 14px;border-left:2px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.bnode ul a{display:block;padding:6px 8px;border-radius:7px;color:var(--fg);text-decoration:none;font-size:14.5px;position:relative}
+.bnode ul a::before{content:"";position:absolute;left:-14px;top:50%;width:12px;height:2px;background:var(--line)}
+.bnode ul a:hover{background:var(--sunk);color:var(--accent)}
+@media (max-width:900px){
+  .tree{align-items:stretch}.tree-root{align-items:flex-start}.tree-stem{margin-left:26px}
+  .branches{grid-template-columns:minmax(0,1fr);gap:14px;padding-left:26px;border-left:2px solid var(--accent);margin-left:26px;width:auto}
+  .branches::before{display:none}
+  .branches>li{padding-top:0;align-items:stretch}
+  .branches>li::before{top:30px;left:-26px;width:24px;height:2px}
+}
+
+/* ---------- footer with site map ---------- */
+footer.site{background:var(--hero);color:var(--hero-muted)}
+footer.site .in{padding-block:44px 22px;display:flex;flex-direction:column;gap:30px}
+.fgrid{display:grid;grid-template-columns:minmax(0,1.4fr) repeat(4,minmax(0,1fr));gap:28px}
+@media (max-width:900px){.fgrid{grid-template-columns:repeat(2,minmax(0,1fr))}.fgrid>div:first-child{grid-column:1/-1}}
+.fgrid h2{font-family:var(--mono);font-size:12px;letter-spacing:1.3px;text-transform:uppercase;color:var(--gold);margin:0 0 10px;font-weight:600}
+.fgrid ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.fgrid a{color:var(--hero-fg);text-decoration:none;font-size:14.5px;display:inline-block;padding:4px 0}
+.fgrid a:hover{color:var(--gold)}
+.fgrid p{margin:10px 0 0;font-size:14px;line-height:1.6;max-width:36ch}
+.fbottom{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;border-top:1px solid rgba(255,255,255,.1);padding-top:18px;font-size:13px}
+.fbottom a{color:var(--hud);text-decoration:none}
+@media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}}
+</style>
+
+<a class="skip" href="#main">Skip to content</a>
+
+<div class="topbar">
+  <div class="in">
+    <a class="brand" href="#home" aria-label="SkyGuard AI, home">
+      <svg width="34" height="34" viewBox="0 0 34 34" aria-hidden="true"><rect x="1" y="1" width="32" height="32" rx="9" style="fill:var(--hero-2)"></rect><path d="M8 12V8h4M22 8h4v4M26 22v4h-4M12 26H8v-4" fill="none" style="stroke:var(--hud)" stroke-width="2.2" stroke-linecap="round"></path><path d="M11 20.5c0-4 3-6 7-5.5 2.5.3 4 1.8 3.6 4-.4 2.2-3.4 3.2-6 3-2.6-.2-4.6-.6-4.6-1.5z" fill="#eef3f7"></path><circle cx="21.3" cy="14" r="2.4" fill="#eef3f7"></circle><path d="M23.5 13.6l2.1.6-2.1.6z" style="fill:var(--gold)"></path></svg>
+      <span>SkyGuard <b>AI</b></span>
+    </a>
+    <nav aria-label="Main">
+      <ul class="nav">
+        <li><a href="#home" data-page="home">Home</a></li>
+        <li><a href="#about" data-page="about">About</a></li>
+        <li><a href="#product" data-page="product">Product</a></li>
+        <li><a href="#contact" data-page="contact">Contact</a></li>
+      </ul>
+    </nav>
+  </div>
+</div>
+
+<main id="main">
+
+<!-- ================= HOME ================= -->
+<section class="page" id="home" aria-label="Home">
+  <div class="hero">
+    <div class="in">
+      <div class="vf"><i></i>
+        <p class="tag">Live AI camera · Emirates Young Scientist Competition</p>
+        <h1>Pigeons leave. <em>Unharmed.</em></h1>
+        <p class="lede">SkyGuard AI watches your balcony with a camera, recognises pigeons using artificial intelligence, and plays a short sound that sends them on their way. Other birds are left alone, and no bird is ever touched.</p>
+        <div class="cta"><a class="btn gold" href="#sim">Run the simulation</a><a class="btn line" href="app/">Open the mobile app</a><a class="btn line" href="#product">See the product</a></div>
+      </div>
+      <dl class="kpis">
+        <div><dt>Species identified correctly</dt><dd>97.6<small>%</small></dd></div>
+        <div><dt>False alarms on other birds</dt><dd>0</dd></div>
+        <div><dt>Pigeon visits ended by the sound</dt><dd>95.8<small>%</small></dd></div>
+        <div><dt>Average time a pigeon stayed</dt><dd>2.8<small>s</small></dd></div>
+        <p class="kpi-note">Simulated results · 2.5 kHz · confidence 0.80 · daylight</p>
+      </dl>
+    </div>
+  </div>
+
+  <div class="wrap">
+    <div class="sec" id="sim">
+      <div class="simhead">
+        <div>
+          <p class="eyebrow">Live simulation</p>
+          <h2 class="h2">Watch the AI at work</h2>
+          <p class="lead" style="margin-top:8px">Birds land on the balcony. Orange boxes are pigeons, blue boxes are other birds. Only a confident pigeon inside the green zone triggers the sound.</p>
+        </div>
+        <div class="status" role="status"><span class="dot" id="dot"></span><span id="statusText">Camera live · day</span></div>
+      </div>
+
+      <div class="main">
+        <div class="console">
+          <div class="console-bar"><span><b>CAM-01</b> · Balcony, south side</span><span>AI model · 10 frames/s</span></div>
+          <div class="cam"><canvas id="scene" width="960" height="600" aria-label="Simulated balcony camera with birds and AI detection boxes" role="img"></canvas></div>
+          <div class="legend">
+            <span><i style="border-color:#ff7a33"></i>AI says pigeon (target)</span>
+            <span><i style="border-color:#5aa7ff"></i>Another species (left alone)</span>
+            <span><i style="border-color:#7fd4a8;border-style:dashed"></i>Protected balcony zone</span>
+          </div>
+        </div>
+
+        <div class="panel" id="controls" aria-label="Operator controls">
+          <h3>Operator controls</h3>
+          <div class="row">
+            <button class="primary" id="play" type="button">Pause</button>
+            <select id="speed" aria-label="Simulation speed"><option value="1">1× speed</option><option value="2" selected>2× speed</option><option value="4">4× speed</option></select>
+            <button id="reset" type="button">Reset</button>
+          </div>
+          <div class="ctl">
+            <label for="rate">Bird visits per minute <output id="rateOut">14</output></label>
+            <input id="rate" type="range" min="4" max="40" step="1" value="14">
+          </div>
+          <div class="ctl">
+            <label for="thr">AI confidence needed <output id="thrOut">0.80</output></label>
+            <input id="thr" type="range" min="0.5" max="0.98" step="0.01" value="0.80">
+            <small>Higher means fewer false alarms on doves, but some pigeons may be missed.</small>
+          </div>
+          <div class="ctl">
+            <label for="freq">Sound frequency <output id="freqOut">2.5 kHz</output></label>
+            <input id="freq" type="range" min="0" max="100" step="1" value="44">
+            <small>Pigeons hear best around 1–4 kHz. Ultrasonic sound (above 20 kHz) is outside their hearing, so it has little effect.</small>
+          </div>
+          <div class="ctl">
+            <label for="light">Lighting</label>
+            <select id="light"><option value="day">Day (clear image)</option><option value="dusk">Dusk (noisier image)</option></select>
+          </div>
+          <label class="check"><input type="checkbox" id="vary" checked> Vary the sound pattern (slows habituation)</label>
+          <label class="check"><input type="checkbox" id="boxes" checked> Show AI detection boxes</label>
+          <label class="check"><input type="checkbox" id="audio"> Play the deterrent sound on this device (quiet)</label>
+        </div>
+      </div>
+
+      <div class="stats" aria-live="polite">
+        <div class="tile t"><b id="sDeter">0</b><span>Pigeons sent away, unharmed</span></div>
+        <div class="tile"><b id="sTime">–</b><span>Average seconds a pigeon stayed</span></div>
+        <div class="tile s"><b id="sSafe">0</b><span>Other birds left alone</span></div>
+        <div class="tile"><b id="sFalse">0</b><span>False alarms (not a pigeon)</span></div>
+        <div class="tile"><b id="sMiss">0</b><span>Pigeons that stayed until they chose to leave</span></div>
+        <div class="tile"><b id="sAvoid">0</b><span>Sound pulses saved vs. a motion-only sensor</span></div>
+      </div>
+    </div>
+
+    <div class="lower" id="results">
+      <div class="panel">
+        <div class="row" style="justify-content:space-between;align-items:center">
+          <h3>Classification results</h3>
+          <div class="row" style="align-items:center"><span class="copied" id="copied" hidden>Copied</span><button type="button" id="copy">Copy results</button></div>
+        </div>
+        <div class="scroll"><table id="conf"></table></div>
+        <p class="note" id="acc">Rows are the real species, columns are what the AI decided. Green cells are correct.</p>
+      </div>
+      <div class="panel">
+        <h3>Pigeon hearing vs. chosen sound</h3>
+        <svg id="hear" viewBox="0 0 320 190" role="img" aria-label="Chart of how strongly pigeons react to each sound frequency, with the chosen frequency marked"></svg>
+        <p class="note">Model curve used in the simulation: reaction is strongest near 2 kHz and drops at high frequencies. Repeating the same sound makes pigeons get used to it, shown as habituation.</p>
+        <div class="ctl"><label>Habituation <output id="habOut">0%</output></label></div>
+      </div>
+      <div class="panel">
+        <h3>Event log</h3>
+        <ul class="log" id="log"></ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= ABOUT ================= -->
+<section class="page" id="about" aria-labelledby="aboutTitle" hidden>
+  <div class="phead"><div class="in">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#home">Home</a><span>/</span><span aria-current="page">About</span></nav>
+    <h1 id="aboutTitle">Pigeons off the balcony, <em>without harm</em></h1>
+    <p>SkyGuard AI is a student research project for the Emirates Young Scientist Competition. It asks one question: can an AI camera tell pigeons apart from other birds well enough to send away only the pigeons, gently and only when needed?</p>
+  </div></div>
+  <div class="wrap">
+    <div class="sec" id="about-mission">
+      <div><p class="eyebrow">Our mission</p><h2 class="h2">Three goals, one device</h2></div>
+      <div class="grid3">
+        <div class="card goal">
+          <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"></path></svg></div>
+          <h3 class="h3">No harm to pigeons</h3>
+          <p>No spikes, nets, glue or poison. Birds are never touched. A short sound pulse is enough to make a pigeon choose another place to rest.</p>
+        </div>
+        <div class="card goal">
+          <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path><path d="M10 20v-5h4v5"></path></svg></div>
+          <h3 class="h3">Safe property</h3>
+          <p>Pigeon droppings are acidic and stain balconies, furniture and AC units, and nests can block drains and vents. Keeping pigeons away protects homes and cuts cleaning and repair costs.</p>
+        </div>
+        <div class="card goal">
+          <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c0-9 6-15 15-16-1 9-7 15-15 16z"></path><path d="M5 21l8-8"></path></svg></div>
+          <h3 class="h3">Clean environment</h3>
+          <p>Fewer droppings means fewer bacteria and fungi near windows and living spaces, and less use of strong cleaning chemicals on balconies.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="split" id="about-problem">
+      <div>
+        <p class="eyebrow">The problem</p>
+        <p class="quote">Most deterrents either <em>hurt birds</em> or <em>affect everyone</em>.</p>
+        <p>Pigeons gather on apartment balconies across the UAE. Spikes and glue hurt birds. Nets block the view. Always-on sound devices affect every bird and every person nearby, and many "ultrasonic" repellers use frequencies pigeons barely hear, so they do little.</p>
+      </div>
+      <div id="about-idea">
+        <p class="eyebrow">Our idea</p>
+        <p class="quote">Only act when it is <em>really a pigeon</em>.</p>
+        <p>An AI model checks each bird the camera sees. When it is confident a bird is a pigeon, a speaker plays a short pulse in the range pigeons hear best (about 1–4 kHz), changing the sound each time so they do not get used to it. Doves, mynas, sparrows and parakeets are left alone.</p>
+      </div>
+    </div>
+
+    <div class="sec" id="about-team">
+      <div><p class="eyebrow">The team</p><h2 class="h2">Who we are</h2></div>
+      <div class="card">
+        <dl class="spec">
+          <dt>Team name</dt><dd class="ph">[Team name]</dd>
+          <dt>Students</dt><dd class="ph">[Student 1] · [Student 2] · [Student 3]</dd>
+          <dt>Supervisor</dt><dd class="ph">[Teacher name]</dd>
+          <dt>School</dt><dd>Applied Technology Schools – Abu Dhabi Boys Campus</dd>
+          <dt>Competition</dt><dd>Emirates Young Scientist Competition, NSTI Festival</dd>
+        </dl>
+      </div>
+      <div class="row"><a class="btn ink" href="#sim">Try the live simulation</a><a class="btn soft" href="#product">See the product</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= PRODUCT ================= -->
+<section class="page" id="product" aria-labelledby="productTitle" hidden>
+  <div class="phead"><div class="in">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#home">Home</a><span>/</span><span aria-current="page">Product</span></nav>
+    <h1 id="productTitle">The SkyGuard <em>AI</em> unit</h1>
+    <p>A small weather-proof box that mounts in the corner of a balcony. Inside are a camera, a low-power computer that runs the AI model, and a speaker. It works on its own, with no app needed.</p>
+  </div></div>
+  <div class="wrap">
+    <div class="device" id="product-parts">
+      <div class="device-art">
+        <svg viewBox="0 0 520 380" role="img" aria-label="Drawing of the SkyGuard AI unit with its camera, AI computer, speaker and status light labelled">
+          <rect x="0" y="0" width="520" height="380" fill="none"></rect>
+          <rect x="250" y="30" width="16" height="70" rx="4" fill="#2a3d51"></rect>
+          <rect x="200" y="20" width="116" height="20" rx="6" fill="#2a3d51"></rect>
+          <rect x="170" y="90" width="176" height="250" rx="26" fill="#eef3f7"></rect>
+          <rect x="170" y="90" width="176" height="44" rx="22" fill="#d7e0e8"></rect>
+          <circle cx="258" cy="172" r="40" fill="#0e1b29"></circle>
+          <circle cx="258" cy="172" r="27" fill="#1f4e7a"></circle>
+          <circle cx="258" cy="172" r="13" fill="#0a1420"></circle>
+          <circle cx="250" cy="164" r="5" fill="#9fd0ff"></circle>
+          <g fill="#0e1b29">
+            <circle cx="222" cy="260" r="4"></circle><circle cx="240" cy="260" r="4"></circle><circle cx="258" cy="260" r="4"></circle><circle cx="276" cy="260" r="4"></circle><circle cx="294" cy="260" r="4"></circle>
+            <circle cx="231" cy="276" r="4"></circle><circle cx="249" cy="276" r="4"></circle><circle cx="267" cy="276" r="4"></circle><circle cx="285" cy="276" r="4"></circle>
+            <circle cx="222" cy="292" r="4"></circle><circle cx="240" cy="292" r="4"></circle><circle cx="258" cy="292" r="4"></circle><circle cx="276" cy="292" r="4"></circle><circle cx="294" cy="292" r="4"></circle>
+          </g>
+          <circle cx="318" cy="114" r="6" fill="#5cf0a0"></circle>
+          <path d="M360 262 q22 18 0 36 M376 250 q34 30 0 60 M392 238 q46 42 0 84" fill="none" stroke="#e2ac55" stroke-width="4" stroke-linecap="round"></path>
+          <g font-family="IBM Plex Sans, sans-serif" font-size="15" fill="#eef3f7" font-weight="600">
+            <line x1="218" y1="172" x2="120" y2="172" stroke="#5cf0a0" stroke-width="2"></line><circle cx="120" cy="172" r="4" fill="#5cf0a0"></circle>
+            <text x="112" y="168" text-anchor="end">Wide-angle</text><text x="112" y="186" text-anchor="end">camera</text>
+            <line x1="200" y1="225" x2="120" y2="240" stroke="#5cf0a0" stroke-width="2"></line><circle cx="120" cy="240" r="4" fill="#5cf0a0"></circle>
+            <text x="112" y="236" text-anchor="end">AI computer</text><text x="112" y="254" text-anchor="end">inside</text>
+            <line x1="214" y1="292" x2="120" y2="312" stroke="#5cf0a0" stroke-width="2"></line><circle cx="120" cy="312" r="4" fill="#5cf0a0"></circle>
+            <text x="112" y="308" text-anchor="end">Speaker</text><text x="112" y="326" text-anchor="end">1–4 kHz</text>
+            <line x1="324" y1="114" x2="410" y2="114" stroke="#5cf0a0" stroke-width="2"></line><circle cx="410" cy="114" r="4" fill="#5cf0a0"></circle>
+            <text x="418" y="110">Status</text><text x="418" y="128">light</text>
+            <line x1="316" y1="30" x2="410" y2="44" stroke="#5cf0a0" stroke-width="2"></line><circle cx="410" cy="44" r="4" fill="#5cf0a0"></circle>
+            <text x="418" y="40">Wall or</text><text x="418" y="58">rail mount</text>
+          </g>
+        </svg>
+      </div>
+      <div class="sec">
+        <div><p class="eyebrow">Inside the unit</p><h2 class="h2">Prototype parts</h2></div>
+        <dl class="spec">
+          <dt>Computer</dt><dd>Raspberry Pi, or ESP32-CAM for a low-cost version</dd>
+          <dt>Camera</dt><dd>Camera module with a wide-angle lens</dd>
+          <dt>AI model</dt><dd>Object detector (for example YOLO) trained on photos of local birds</dd>
+          <dt>Deterrent</dt><dd>Small amplified speaker, 1–4 kHz pulses, volume limited</dd>
+          <dt>Power</dt><dd>Mains adapter; solar panel as a future option</dd>
+          <dt>Logging</dt><dd>Detections and pulses saved to a memory card</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="sec" id="product-how">
+      <div><p class="eyebrow">How it works</p><h2 class="h2">From camera frame to flight in five steps</h2></div>
+      <ol class="pipe">
+        <li><b>Watch</b><span>The camera checks the balcony about 10 times a second.</span></li>
+        <li><b>Detect</b><span>The AI finds every bird in the picture and draws a box around it.</span></li>
+        <li><b>Classify</b><span>It decides the species and how sure it is, for example "pigeon, 0.92".</span></li>
+        <li><b>Decide</b><span>It acts only for a confident pigeon inside the balcony zone for 0.6 s.</span></li>
+        <li><b>Deter</b><span>A short, varied pulse plays. The pigeon flies away unharmed, then the unit waits 3 s.</span></li>
+      </ol>
+    </div>
+
+    <div class="sec" id="product-performance">
+      <div class="sec-head"><div><p class="eyebrow">Performance</p><h2 class="h2">What the simulation shows</h2></div><a class="btn soft" href="#sim">Run it yourself</a></div>
+      <div class="bignum">
+        <div><b>97.6%</b><span>Species identified correctly</span></div>
+        <div><b>99.4%</b><span>"Pigeon" calls that were right</span></div>
+        <div><b>95.8%</b><span>Pigeon visits ended by the sound</span></div>
+        <div><b>2.8 s</b><span>Average time a pigeon stayed</span></div>
+      </div>
+      <p class="note">Default settings: 2.5 kHz, confidence 0.80, daylight. These are model results, not field measurements.</p>
+    </div>
+
+    <div class="sec" id="product-app">
+      <div class="sec-head"><div><p class="eyebrow">Mobile app</p><h2 class="h2">Control the unit from your phone</h2></div><a class="btn ink" href="app/">Open the app</a></div>
+      <div class="grid3">
+        <div class="card"><h3 class="h3">Live view</h3><p>See the balcony camera with the AI's boxes, turn protection on or off, and play a test sound.</p></div>
+        <div class="card"><h3 class="h3">Activity and stats</h3><p>Every bird the camera saw, what the AI decided, and today's pigeon visits hour by hour.</p></div>
+        <div class="card"><h3 class="h3">Settings</h3><p>Set the sound frequency, volume, AI confidence and quiet hours when the unit stays silent.</p></div>
+      </div>
+      <p class="note">Works on iPhone and Android. Open it in the phone's browser and choose "Add to Home Screen" to install it.</p>
+    </div>
+
+    <div class="sec" id="product-compare">
+      <div><p class="eyebrow">Comparison</p><h2 class="h2">How SkyGuard AI compares</h2></div>
+      <div class="card scroll">
+        <table class="cmp">
+          <thead><tr><th>Method</th><th>Harmless to birds</th><th>Targets pigeons only</th><th>Keeps the view clear</th><th>Stays effective</th></tr></thead>
+          <tbody>
+            <tr><td>Spikes or glue</td><td><span class="mk n" aria-label="No">✕</span></td><td><span class="mk n" aria-label="No">✕</span></td><td><span class="mk y" aria-label="Yes">✓</span></td><td><span class="mk y" aria-label="Yes">✓</span></td></tr>
+            <tr><td>Nets</td><td><span class="mk y" aria-label="Yes">✓</span></td><td><span class="mk n" aria-label="No">✕</span></td><td><span class="mk n" aria-label="No">✕</span></td><td><span class="mk y" aria-label="Yes">✓</span></td></tr>
+            <tr><td>Always-on ultrasonic device</td><td><span class="mk y" aria-label="Yes">✓</span></td><td><span class="mk n" aria-label="No">✕</span></td><td><span class="mk y" aria-label="Yes">✓</span></td><td><span class="mk n" aria-label="No">✕</span></td></tr>
+            <tr><td>Motion-triggered sound</td><td><span class="mk y" aria-label="Yes">✓</span></td><td><span class="mk n" aria-label="No">✕</span></td><td><span class="mk y" aria-label="Yes">✓</span></td><td><span class="mk n" aria-label="No">✕</span></td></tr>
+            <tr class="us"><td>SkyGuard AI</td><td><span class="mk y" aria-label="Yes">✓</span></td><td><span class="mk y" aria-label="Yes">✓</span></td><td><span class="mk y" aria-label="Yes">✓</span></td><td><span class="mk y" aria-label="Yes">✓</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="row"><a class="btn ink" href="#sim">Run the simulation</a><a class="btn soft" href="#contact">Contact the team</a></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CONTACT ================= -->
+<section class="page" id="contact" aria-labelledby="contactTitle" hidden>
+  <div class="phead"><div class="in">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#home">Home</a><span>/</span><span aria-current="page">Contact</span></nav>
+    <h1 id="contactTitle">Talk to the <em>team</em></h1>
+    <p>Questions about SkyGuard AI, the simulation or the research? Get in touch with the team through the school.</p>
+  </div></div>
+  <div class="wrap">
+    <div class="grid2">
+      <div class="card" id="contact-email">
+        <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="M3 7l9 6 9-6"></path></svg></div>
+        <h2 class="h3">Email</h2>
+        <div class="contact-line"><code class="ph">[team email address]</code><button type="button" data-copy="[team email address]">Copy</button></div>
+        <p>Replace this with the team's or supervisor's school email before sharing the site.</p>
+      </div>
+      <div class="card" id="contact-school">
+        <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 2 9 2 12 0v-5"></path></svg></div>
+        <h2 class="h3">School</h2>
+        <p style="color:var(--fg);font-weight:600">Applied Technology Schools – Abu Dhabi Boys Campus</p>
+        <p>Abu Dhabi, United Arab Emirates</p>
+      </div>
+      <div class="card" id="contact-code">
+        <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7l-5 5 5 5M16 7l5 5-5 5"></path></svg></div>
+        <h2 class="h3">Project code</h2>
+        <div class="contact-line"><code class="ph">[github.com/your-username/skyguard-ai]</code><button type="button" data-copy="[github.com/your-username/skyguard-ai]">Copy</button></div>
+        <p>The simulation and Python experiments are open source under the MIT license.</p>
+      </div>
+      <div class="card" id="contact-visit">
+        <div class="ico"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-6-5.5-6-11a6 6 0 0 1 12 0c0 5.5-6 11-6 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg></div>
+        <h2 class="h3">Visit us</h2>
+        <p>Find SkyGuard AI at the Emirates Young Scientist Competition, NSTI Festival.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SITE MAP ================= -->
+<section class="page" id="sitemap" aria-labelledby="sitemapTitle" hidden>
+  <div class="phead"><div class="in">
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="#home">Home</a><span>/</span><span aria-current="page">Site map</span></nav>
+    <h1 id="sitemapTitle">Site <em>map</em></h1>
+    <p>Every page and section of the SkyGuard AI site. Select any item to go straight there.</p>
+  </div></div>
+  <div class="wrap">
+    <div class="tree">
+      <a class="tree-root" href="#home"><b>SkyGuard AI</b><span>4 pages · 17 sections</span></a>
+      <div class="tree-stem" aria-hidden="true"></div>
+      <ul class="branches">
+        <li><div class="bnode"><a href="#home">Home <span>/</span></a><ul>
+          <li><a href="#home">Hero and key results</a></li>
+          <li><a href="#sim">Live simulation</a></li>
+          <li><a href="#controls">Operator controls</a></li>
+          <li><a href="#results">Results, hearing chart and event log</a></li>
+        </ul></div></li>
+        <li><div class="bnode"><a href="#about">About <span>/about</span></a><ul>
+          <li><a href="#about-mission">Our mission</a></li>
+          <li><a href="#about-problem">The problem</a></li>
+          <li><a href="#about-idea">Our idea</a></li>
+          <li><a href="#about-team">The team</a></li>
+        </ul></div></li>
+        <li><div class="bnode"><a href="#product">Product <span>/product</span></a><ul>
+          <li><a href="#product-parts">Prototype parts</a></li>
+          <li><a href="#product-how">How it works</a></li>
+          <li><a href="#product-performance">Performance</a></li>
+          <li><a href="#product-app">Mobile app</a></li>
+          <li><a href="#product-compare">Comparison</a></li>
+        </ul></div></li>
+        <li><div class="bnode"><a href="#contact">Contact <span>/contact</span></a><ul>
+          <li><a href="#contact-email">Email</a></li>
+          <li><a href="#contact-school">School</a></li>
+          <li><a href="#contact-code">Project code</a></li>
+          <li><a href="#contact-visit">Visit us</a></li>
+        </ul></div></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="site">
+  <div class="in">
+    <div class="fgrid">
+      <div>
+        <a class="brand" href="#home" aria-label="SkyGuard AI, home"><span>SkyGuard <b>AI</b></span></a>
+        <p>An AI camera that tells pigeons from other birds and sends only the pigeons away, with sound and without harm.</p>
+      </div>
+      <div><h2>Home</h2><ul><li><a href="#sim">Live simulation</a></li><li><a href="#controls">Operator controls</a></li><li><a href="#results">Results</a></li></ul></div>
+      <div><h2>About</h2><ul><li><a href="#about-mission">Our mission</a></li><li><a href="#about-problem">The problem</a></li><li><a href="#about-idea">Our idea</a></li><li><a href="#about-team">The team</a></li></ul></div>
+      <div><h2>Product</h2><ul><li><a href="#product-parts">Prototype parts</a></li><li><a href="#product-how">How it works</a></li><li><a href="#product-performance">Performance</a></li><li><a href="#product-app">Mobile app</a></li><li><a href="#product-compare">Comparison</a></li></ul></div>
+      <div><h2>Contact</h2><ul><li><a href="#contact-email">Email</a></li><li><a href="#contact-school">School</a></li><li><a href="#contact-code">Project code</a></li><li><a href="#sitemap">Site map</a></li></ul></div>
+    </div>
+    <div class="fbottom"><span>Applied Technology Schools – Abu Dhabi Boys Campus · Emirates Young Scientist Competition</span><a href="#sitemap">Site map</a></div>
+  </div>
+</footer>
+
+<script>
+(() => {
+const W = 960, H = 600;
+const cv = document.getElementById('scene'), ctx = cv.getContext('2d');
+const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+// Species common on UAE balconies. feat = [size, colourfulness, darkness, tail length] used by the simulated classifier.
+const SPECIES = {
+  pigeon:   {name:'Rock pigeon', short:'PIGEON', size:1.0,  body:'#8e949f', head:'#636a77', wing:'#7a808b', bar:'#3c414a', neck:'#4f9a72', beak:'#2b2b2b', tail:16, feat:[1.00,0.15,0.45,0.50], center:3.30, w:0.42},
+  dove:     {name:'Collared dove', short:'DOVE', size:0.86, body:'#cfbea8', head:'#c4b29c', wing:'#b9a78f', bar:'#b9a78f', neck:'#1d1d1d', beak:'#2b2b2b', tail:20, feat:[0.86,0.30,0.27,0.66], center:3.30, w:0.16},
+  myna:     {name:'Common myna', short:'MYNA', size:0.74,  body:'#5c3b2a', head:'#1f1b18', wing:'#4a2f22', bar:'#f4f1ea', neck:'#1f1b18', beak:'#f2c230', tail:13, feat:[0.72,0.55,0.76,0.45], center:3.35, w:0.18},
+  sparrow:  {name:'House sparrow', short:'SPARROW', size:0.5, body:'#9b7651', head:'#7e8085', wing:'#6e5238', bar:'#f0e6d6', neck:'#2b2b2b', beak:'#3a3a3a', tail:11, feat:[0.46,0.50,0.50,0.40], center:3.45, w:0.14},
+  parakeet: {name:'Ring-necked parakeet', short:'PARAKEET', size:0.8, body:'#5cb85c', head:'#4aa64a', wing:'#3f9a3f', bar:'#3f9a3f', neck:'#111', beak:'#d9342b', tail:34, feat:[0.76,0.92,0.33,1.00], center:3.40, w:0.10},
+};
+const KEYS = Object.keys(SPECIES);
+
+// UI state
+const ui = { running:true, speed:2, rate:14, thr:0.80, freq:2500, light:'day', vary:true, boxes:true, audio:false };
+const sliderToFreq = v => Math.round(Math.pow(10, 2.4 + v/100*2.3) / 50) * 50; // 250 Hz .. ~50 kHz
+const fmtF = f => f >= 1000 ? (f/1000).toFixed(f >= 10000 ? 0 : 1) + ' kHz' : f + ' Hz';
+
+// Hearing model: log-normal response, peak 0.9 near 2 kHz for pigeons
+function hearing(f, sp){ const c = SPECIES[sp].center; const x = Math.log10(f); return 0.9*Math.exp(-((x-c)**2)/(2*0.35*0.35)); }
+
+let birds, pulses, stats, conf, hab, logItems, simTime, spawnAcc, nextId, cooldown;
+function reset(){
+  birds = []; pulses = []; logItems = []; simTime = 0; spawnAcc = 0; nextId = 1; cooldown = 0; hab = 0;
+  stats = {deter:0, stayTotal:0, safe:0, falseAlarm:0, miss:0, pulses:0, motionPulses:0};
+  conf = {}; KEYS.forEach(a => { conf[a] = {}; KEYS.forEach(b => conf[a][b] = 0); });
+  $('log').innerHTML = ''; addLog('o','System armed. Watching the balcony.');
+  renderTables(); renderStats();
+}
+
+const PERCH = () => Math.random() < 0.6
+  ? {x: 160 + Math.random()*640, y: 396}
+  : {x: 190 + Math.random()*560, y: 520};
+const ZONE = {x:120, y:270, w:760, h:290};
+const SPEAKER = {x:858, y:330};
+const gauss = () => { let u=0,v=0; while(!u)u=Math.random(); while(!v)v=Math.random(); return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); };
+
+function pickSpecies(){
+  let r = Math.random(), s = 0;
+  for (const k of KEYS){ s += SPECIES[k].w; if (r < s) return k; }
+  return 'pigeon';
+}
+function spawn(){
+  if (birds.length >= 9) return;
+  const sp = pickSpecies(), left = Math.random() < 0.5, t = PERCH();
+  birds.push({ id:nextId++, sp, x: left ? -40 : W+40, y: 50 + Math.random()*180, tx:t.x, ty:t.y,
+    state:'arrive', dir: left ? 1 : -1, flap: Math.random()*6, perch: 10 + Math.random()*22, t:0,
+    bias: SPECIES[sp].feat.map(() => gauss()*(ui.light === 'dusk' ? 0.12 : 0.09)), probs: Object.fromEntries(KEYS.map(k => [k, 1/KEYS.length])),
+    sum: Object.fromEntries(KEYS.map(k => [k, 0])), obsT:0, lock:0, arrivedAt:null, deterred:false, pulsed:false });
+  stats.motionPulses += 0; // counted when the bird lands
+}
+
+// Simulated AI classifier: noisy features -> similarity to each species prototype -> probabilities
+function classify(b){
+  const noise = ui.light === 'dusk' ? 0.13 : 0.06;
+  const f = SPECIES[b.sp].feat.map((v,i) => v + b.bias[i] + gauss()*noise);
+  const raw = {}; let tot = 0;
+  for (const k of KEYS){ const p = SPECIES[k].feat; let d = 0; for (let i=0;i<4;i++) d += (f[i]-p[i])**2; raw[k] = Math.exp(-d/0.03); tot += raw[k]; }
+  for (const k of KEYS){ const p = raw[k]/tot; b.probs[k] = b.probs[k]*0.7 + p*0.3; b.sum[k] += p; }
+}
+const top = probs => KEYS.reduce((a,k) => probs[k] > probs[a] ? k : a, KEYS[0]);
+const inZone = b => b.x > ZONE.x && b.x < ZONE.x+ZONE.w && b.y > ZONE.y && b.y < ZONE.y+ZONE.h;
+
+function fire(b){
+  cooldown = 3; stats.pulses++;
+  const f = ui.vary ? ui.freq*(0.85 + Math.random()*0.3) : ui.freq;
+  pulses.push({t:0, f});
+  const wasPigeon = b.sp === 'pigeon';
+  if (!wasPigeon){ stats.falseAlarm++; addLog('t', `False alarm: a ${SPECIES[b.sp].name.toLowerCase()} was taken for a pigeon.`); }
+  else addLog('t', `Pigeon confirmed (${b.probs.pigeon.toFixed(2)}). Sound pulse at ${fmtF(Math.round(f))}.`);
+  let moved = 0;
+  for (const o of birds){
+    if (o.state !== 'perch' && o.state !== 'arrive') continue;
+    if (!inZone(o) && o.state !== 'perch') continue;
+    let p = hearing(f, o.sp) * (o.sp === 'pigeon' ? (1 - hab) : 0.6);
+    o.pulsed = true;
+    if (Math.random() < p){ o.state = 'flee'; o.dir = o.x < W/2 ? -1 : 1; o.deterred = true; if (o.sp === 'pigeon') moved++; }
+  }
+  hab = Math.min(0.9, hab + (ui.vary ? 0.012 : 0.05));
+  if (wasPigeon && moved === 0) addLog('t', 'Pigeon did not react. Will try again after a 3 s pause.');
+  playTone(f);
+}
+
+let actx = null;
+function playTone(f){
+  if (!ui.audio) return;
+  try{
+    actx = actx || new (window.AudioContext || window.webkitAudioContext)();
+    const o = actx.createOscillator(), g = actx.createGain(), n = actx.currentTime;
+    o.type = 'sine'; const audible = Math.min(f, 18000);
+    o.frequency.setValueAtTime(audible, n);
+    if (ui.vary){ o.frequency.linearRampToValueAtTime(audible*1.25, n+0.25); o.frequency.linearRampToValueAtTime(audible*0.9, n+0.5); }
+    g.gain.setValueAtTime(0.0001, n); g.gain.exponentialRampToValueAtTime(0.06, n+0.03); g.gain.exponentialRampToValueAtTime(0.0001, n+0.6);
+    o.connect(g).connect(actx.destination); o.start(n); o.stop(n+0.65);
+  }catch(e){}
+}
+
+function leave(b){
+  const pred = top(b.sum);
+  conf[b.sp][pred]++;
+  if (b.arrivedAt !== null){
+    if (b.sp === 'pigeon'){
+      const stay = simTime - b.arrivedAt;
+      if (b.deterred){ stats.deter++; stats.stayTotal += stay; addLog('o', `Pigeon flew away unharmed after ${stay.toFixed(1)} s.`); }
+      else { stats.miss++; addLog('t', `A pigeon stayed ${stay.toFixed(0)} s and left on its own.`); }
+    } else if (!b.pulsed){ stats.safe++; addLog('s', `${SPECIES[b.sp].name} visited and was left alone.`); }
+    else addLog('s', `${SPECIES[b.sp].name} was nearby during a pulse.`);
+  }
+  renderTables(); renderStats();
+}
+
+function step(dt){
+  simTime += dt;
+  spawnAcc += dt * ui.rate/60;
+  while (spawnAcc >= 1){ spawnAcc -= 1; spawn(); }
+  cooldown = Math.max(0, cooldown - dt);
+  hab = Math.max(0, hab - dt*0.004);
+  for (const p of pulses) p.t += dt;
+  pulses = pulses.filter(p => p.t < 1.4);
+
+  for (const b of birds){
+    b.t += dt; b.obsT += dt;
+    if (b.obsT >= 0.1 && b.x > 0 && b.x < W){ b.obsT = 0; classify(b); }
+    const sp = SPECIES[b.sp];
+    if (b.state === 'arrive'){
+      const dx = b.tx - b.x, dy = b.ty - b.y, d = Math.hypot(dx, dy), v = 170 + 60*sp.size;
+      b.dir = dx >= 0 ? 1 : -1; b.flap += dt*14;
+      if (d < v*dt){ b.x = b.tx; b.y = b.ty; b.state = 'perch'; b.t = 0; b.arrivedAt = simTime; stats.motionPulses++; }
+      else { b.x += dx/d*v*dt; b.y += dy/d*v*dt; }
+    } else if (b.state === 'perch'){
+      b.flap = 0;
+      if (Math.random() < dt*0.4) b.dir *= -1;
+      if (b.t > b.perch){ b.state = 'leave'; b.dir = Math.random() < .5 ? -1 : 1; }
+    } else { // leave or flee
+      const v = b.state === 'flee' ? 330 : 190;
+      b.flap += dt*(b.state === 'flee' ? 24 : 14);
+      b.x += b.dir*v*dt; b.y -= v*0.55*dt;
+    }
+    // decision logic: confident pigeon inside the protected zone for 0.6 s
+    const t = top(b.probs);
+    if ((b.state === 'perch' || b.state === 'arrive') && inZone(b) && t === 'pigeon' && b.probs.pigeon >= ui.thr) b.lock += dt; else b.lock = Math.max(0, b.lock - dt);
+    if (b.lock >= 0.6 && cooldown === 0){ b.lock = 0; fire(b); }
+  }
+  const gone = birds.filter(b => b.x < -80 || b.x > W+80 || b.y < -80);
+  gone.forEach(leave);
+  birds = birds.filter(b => !gone.includes(b));
+}
+
+// ---------- drawing ----------
+function drawScene(){
+  const dusk = ui.light === 'dusk';
+  const sky = ctx.createLinearGradient(0,0,0,H*0.7);
+  sky.addColorStop(0, dusk ? '#2a3557' : '#8cc8ef'); sky.addColorStop(1, dusk ? '#c9876a' : '#dff0fb');
+  ctx.fillStyle = sky; ctx.fillRect(0,0,W,H);
+  // distant towers
+  ctx.fillStyle = dusk ? '#3d4459' : '#b9cddb';
+  [[40,180,70,260],[130,140,50,300],[600,120,60,320],[680,200,90,240],[300,210,80,230]].forEach(r => ctx.fillRect(...r));
+  ctx.fillStyle = dusk ? 'rgba(255,214,140,.55)' : 'rgba(255,255,255,.35)';
+  for (let i=0;i<40;i++){ const x = [40,130,600,680,300][i%5] + 8 + (i*13)%40, y = 220 + (i*29)%180; ctx.fillRect(x, y, 6, 8); }
+  // building wall on the right
+  ctx.fillStyle = dusk ? '#6f655d' : '#e8ddcc'; ctx.fillRect(890,0,70,H);
+  ctx.fillStyle = dusk ? '#5d544d' : '#d6c9b5'; for (let y=20;y<H;y+=40) ctx.fillRect(890,y,70,2);
+  // balcony floor
+  ctx.fillStyle = dusk ? '#5b5149' : '#cbbca6'; ctx.fillRect(0,500,W,100);
+  ctx.fillStyle = dusk ? '#4c433c' : '#b8a891'; for (let x=0;x<W;x+=64) ctx.fillRect(x,500,2,100);
+  // pot plant
+  ctx.fillStyle = dusk ? '#7a4d34' : '#b5683f'; ctx.beginPath(); ctx.moveTo(52,560); ctx.lineTo(108,560); ctx.lineTo(100,600); ctx.lineTo(60,600); ctx.fill();
+  ctx.fillStyle = dusk ? '#38593a' : '#4f8f52';
+  for (let i=0;i<7;i++){ ctx.beginPath(); ctx.ellipse(80 + Math.cos(i)*18, 540 - i*6, 10, 26, i*0.5-1.5, 0, Math.PI*2); ctx.fill(); }
+  // railing
+  ctx.fillStyle = dusk ? '#2d2f33' : '#4a4e55';
+  ctx.fillRect(0,400,W,8); ctx.fillRect(0,470,W,5);
+  for (let x=20;x<W;x+=34) ctx.fillRect(x,408,4,92);
+  // protected zone
+  if (ui.boxes){ ctx.save(); ctx.setLineDash([8,6]); ctx.strokeStyle = 'rgba(127,212,168,.75)'; ctx.lineWidth = 2; ctx.strokeRect(ZONE.x, ZONE.y, ZONE.w, ZONE.h); ctx.restore(); }
+  // camera
+  ctx.fillStyle = '#1b1d21'; ctx.fillRect(16,18,62,34); ctx.beginPath(); ctx.arc(70,35,13,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#4ea3ff'; ctx.beginPath(); ctx.arc(70,35,6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = '#e5484d'; ctx.beginPath(); ctx.arc(26,26,4,0,Math.PI*2); ctx.fill();
+  // speaker
+  ctx.fillStyle = '#23262b'; ctx.fillRect(SPEAKER.x, SPEAKER.y-28, 28, 56);
+  ctx.fillStyle = '#5a5f68'; ctx.beginPath(); ctx.arc(SPEAKER.x+14, SPEAKER.y, 9, 0, Math.PI*2); ctx.fill();
+  // HUD text
+  ctx.fillStyle = 'rgba(0,0,0,.45)'; ctx.fillRect(86,14,250,26);
+  ctx.fillStyle = '#ffffff'; ctx.font = '600 13px "IBM Plex Mono", monospace';
+  ctx.fillText(`AI CAM · ${ui.light.toUpperCase()} · T+${simTime.toFixed(0)}s`, 96, 32);
+}
+function drawPulses(){
+  for (const p of pulses){
+    const k = p.t/1.4;
+    for (let i=0;i<3;i++){
+      const r = 30 + (k + i*0.18)*520; const a = Math.max(0, 0.55 - k*0.5 - i*0.12);
+      ctx.strokeStyle = `rgba(255,170,60,${a})`; ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(SPEAKER.x+14, SPEAKER.y, r, Math.PI*0.55, Math.PI*1.45); ctx.stroke();
+    }
+    ctx.fillStyle = 'rgba(0,0,0,.55)'; ctx.fillRect(SPEAKER.x-150, SPEAKER.y-62, 140, 24);
+    ctx.fillStyle = '#ffb347'; ctx.font = '600 13px "IBM Plex Mono", monospace';
+    ctx.fillText(`♪ ${fmtF(Math.round(p.f))} pulse`, SPEAKER.x-142, SPEAKER.y-45);
+  }
+}
+function drawBird(b){
+  const s = SPECIES[b.sp], k = 22*s.size, flying = b.state !== 'perch';
+  ctx.save(); ctx.translate(b.x, b.y); ctx.scale(b.dir, 1);
+  // tail
+  ctx.fillStyle = s.wing; ctx.beginPath(); ctx.moveTo(-k*0.7,-k*0.35); ctx.lineTo(-k*0.7 - s.tail*s.size, -k*0.2 + (flying?0:k*0.15)); ctx.lineTo(-k*0.7,-k*0.05); ctx.fill();
+  // body
+  ctx.fillStyle = s.body; ctx.beginPath(); ctx.ellipse(0,-k*0.45,k*0.85,k*0.5,flying?0:-0.15,0,Math.PI*2); ctx.fill();
+  // head + neck
+  ctx.fillStyle = s.head; ctx.beginPath(); ctx.arc(k*0.72,-k*0.95,k*0.32,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = s.neck; ctx.beginPath(); ctx.ellipse(k*0.55,-k*0.7,k*0.18,k*0.08,0.6,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle = s.beak; ctx.beginPath(); ctx.moveTo(k*1.0,-k*1.0); ctx.lineTo(k*1.25,-k*0.93); ctx.lineTo(k*1.0,-k*0.86); ctx.fill();
+  ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(k*0.8,-k*1.0,k*0.06+0.8,0,Math.PI*2); ctx.fill();
+  // wing
+  ctx.fillStyle = s.wing; ctx.beginPath();
+  if (flying){ const a = Math.sin(b.flap)*0.9; ctx.moveTo(-k*0.2,-k*0.6); ctx.quadraticCurveTo(-k*0.1,-k*0.6 - k*1.4*Math.cos(a), k*0.35,-k*0.6); ctx.fill(); }
+  else { ctx.ellipse(-k*0.05,-k*0.5,k*0.6,k*0.28,-0.15,0,Math.PI*2); ctx.fill(); ctx.fillStyle = s.bar; ctx.fillRect(-k*0.3,-k*0.45,k*0.4,k*0.06); }
+  // legs
+  if (!flying){ ctx.strokeStyle = '#c4626b'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(-k*0.1,-k*0.02); ctx.lineTo(-k*0.12,k*0.18); ctx.moveTo(k*0.15,-k*0.02); ctx.lineTo(k*0.17,k*0.18); ctx.stroke(); }
+  ctx.restore();
+}
+function drawBox(b){
+  if (!ui.boxes || b.x < 0 || b.x > W) return;
+  const s = SPECIES[b.sp], k = 22*s.size, t = top(b.probs), p = b.probs[t];
+  const isP = t === 'pigeon', col = isP ? '#ff7a33' : '#5aa7ff';
+  const x = b.x - k*1.4, y = b.y - k*1.45, w = k*2.8, h = k*1.7;
+  ctx.strokeStyle = col; ctx.lineWidth = isP && p >= ui.thr ? 3 : 2; ctx.strokeRect(x,y,w,h);
+  const label = `${SPECIES[t].short} ${p.toFixed(2)}${isP ? '' : ' · safe'}`;
+  ctx.font = '600 12px "IBM Plex Mono", monospace'; const tw = ctx.measureText(label).width + 10;
+  ctx.fillStyle = col; ctx.fillRect(x, y-18, tw, 18);
+  ctx.fillStyle = '#0d1117'; ctx.fillText(label, x+5, y-5);
+  if (b.lock > 0){ ctx.fillStyle = col; ctx.fillRect(x, y+h+3, w*Math.min(1,b.lock/0.6), 4); }
+}
+function draw(){
+  drawScene();
+  birds.forEach(drawBird);
+  drawPulses();
+  birds.forEach(drawBox);
+}
+
+// ---------- panels ----------
+function addLog(cls, msg){
+  logItems.unshift({cls, msg, t: simTime || 0});
+  logItems = logItems.slice(0, 40);
+  $('log').innerHTML = logItems.map(l => `<li><time>${l.t.toFixed(0).padStart(4,' ')}s</time><span class="${l.cls}">${l.msg}</span></li>`).join('');
+}
+function renderStats(){
+  $('sDeter').textContent = stats.deter;
+  $('sTime').textContent = stats.deter ? (stats.stayTotal/stats.deter).toFixed(1) : '–';
+  $('sSafe').textContent = stats.safe;
+  $('sFalse').textContent = stats.falseAlarm;
+  $('sMiss').textContent = stats.miss;
+  $('sAvoid').textContent = Math.max(0, stats.motionPulses - stats.pulses);
+}
+function renderTables(){
+  let head = '<thead><tr><th>Real \\ AI</th>' + KEYS.map(k => `<th>${SPECIES[k].short.slice(0,4)}</th>`).join('') + '<th>Acc.</th></tr></thead><tbody>';
+  let correct = 0, total = 0, pigTP = 0, pigFP = 0;
+  for (const a of KEYS){
+    const rowT = KEYS.reduce((s,b) => s + conf[a][b], 0); total += rowT; correct += conf[a][a];
+    head += `<tr><td>${SPECIES[a].name}</td>` + KEYS.map(b => {
+      const v = conf[a][b]; const cls = v && a === b ? 'hit' : (v && b === 'pigeon' ? 'fp' : '');
+      return `<td class="${cls}">${v}</td>`; }).join('') + `<td>${rowT ? Math.round(conf[a][a]/rowT*100)+'%' : '–'}</td></tr>`;
+  }
+  KEYS.forEach(a => { if (a === 'pigeon') pigTP = conf.pigeon.pigeon; else pigFP += conf[a].pigeon; });
+  $('conf').innerHTML = head + '</tbody>';
+  const prec = pigTP + pigFP ? Math.round(pigTP/(pigTP+pigFP)*100) : null;
+  $('acc').textContent = total
+    ? `Overall accuracy ${Math.round(correct/total*100)}% over ${total} bird visits. When the AI says "pigeon" it is right ${prec ?? '–'}% of the time. Rows are the real species, columns are the AI's decision; orange cells are other birds mistaken for pigeons.`
+    : 'Rows are the real species, columns are what the AI decided. Results appear as birds leave the camera view.';
+}
+function renderHearing(){
+  const svg = $('hear'), fg = css('--fg'), mu = css('--muted'), ln = css('--line'), ac = css('--target');
+  const x0 = 38, x1 = 308, y0 = 150, y1 = 18, lo = 2.4, hi = 4.7;
+  const X = f => x0 + (Math.log10(f)-lo)/(hi-lo)*(x1-x0), Y = v => y0 - v*(y0-y1);
+  let path = '', area = '';
+  for (let i=0;i<=120;i++){ const lf = lo + (hi-lo)*i/120, f = 10**lf, v = hearing(f,'pigeon')*(1-hab), px = X(f), py = Y(v); path += (i?'L':'M') + px.toFixed(1) + ' ' + py.toFixed(1) + ' '; }
+  area = path + `L${x1} ${y0} L${x0} ${y0} Z`;
+  const ticks = [250,1000,4000,20000];
+  const fx = X(ui.freq), fv = hearing(ui.freq,'pigeon')*(1-hab);
+  svg.innerHTML = `
+    ${[0,0.5,1].map(v => `<line x1="${x0}" x2="${x1}" y1="${Y(v)}" y2="${Y(v)}" stroke="${ln}" stroke-width="1"/><text x="${x0-6}" y="${Y(v)+4}" fill="${mu}" font-size="10" text-anchor="end" font-family="IBM Plex Mono, monospace">${v}</text>`).join('')}
+    ${ticks.map(t => `<text x="${X(t)}" y="${y0+16}" fill="${mu}" font-size="10" text-anchor="middle" font-family="IBM Plex Mono, monospace">${fmtF(t)}</text>`).join('')}
+    <rect x="${X(20000)}" y="${y1}" width="${x1-X(20000)}" height="${y0-y1}" fill="${mu}" opacity="0.12"/>
+    <text x="${(X(20000)+x1)/2}" y="${y1+12}" fill="${mu}" font-size="9" text-anchor="middle" font-family="IBM Plex Mono, monospace">ultrasonic</text>
+    <path d="${area}" fill="${ac}" opacity="0.12"/>
+    <path d="${path}" fill="none" stroke="${ac}" stroke-width="2"/>
+    <line x1="${fx}" x2="${fx}" y1="${y1}" y2="${y0}" stroke="${fg}" stroke-width="1.5" stroke-dasharray="3 3"/>
+    <circle cx="${fx}" cy="${Y(fv)}" r="5" fill="${ac}" stroke="${css('--panel')}" stroke-width="2"/>
+    <text x="${Math.min(fx+8, x1-70)}" y="${Math.max(Y(fv)-10, y1+24)}" fill="${fg}" font-size="11" font-weight="600" font-family="IBM Plex Mono, monospace">reaction ${(fv*100).toFixed(0)}%</text>
+    <text x="${(x0+x1)/2}" y="${y0+34}" fill="${mu}" font-size="10" text-anchor="middle" font-family="IBM Plex Sans, sans-serif">Sound frequency (log scale)</text>`;
+  $('habOut').textContent = Math.round(hab*100) + '%';
+}
+
+// ---------- wiring ----------
+$('play').onclick = () => { ui.running = !ui.running; $('play').textContent = ui.running ? 'Pause' : 'Resume'; $('dot').classList.toggle('paused', !ui.running); status(); };
+$('reset').onclick = () => reset();
+$('speed').onchange = e => ui.speed = +e.target.value;
+$('rate').oninput = e => { ui.rate = +e.target.value; $('rateOut').textContent = ui.rate; };
+$('thr').oninput = e => { ui.thr = +e.target.value; $('thrOut').textContent = ui.thr.toFixed(2); };
+$('freq').oninput = e => { ui.freq = sliderToFreq(+e.target.value); $('freqOut').textContent = fmtF(ui.freq); renderHearing(); };
+$('light').onchange = e => { ui.light = e.target.value; status(); };
+$('vary').onchange = e => ui.vary = e.target.checked;
+$('boxes').onchange = e => ui.boxes = e.target.checked;
+$('audio').onchange = e => { ui.audio = e.target.checked; if (ui.audio){ try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); actx.resume(); }catch(_){} } };
+function status(){ $('statusText').textContent = (ui.running ? 'Camera live · ' : 'Paused · ') + ui.light; }
+$('copy').onclick = async () => {
+  const lines = ['SkyGuard AI simulation results', `Run time: ${simTime.toFixed(0)} s (simulated)`, `Frequency: ${fmtF(ui.freq)} | Confidence threshold: ${ui.thr.toFixed(2)} | Lighting: ${ui.light} | Varied pattern: ${ui.vary ? 'yes' : 'no'}`,
+    `Pigeons sent away: ${stats.deter}`, `Average pigeon stay (s): ${stats.deter ? (stats.stayTotal/stats.deter).toFixed(1) : '-'}`, `Other birds left alone: ${stats.safe}`, `False alarms: ${stats.falseAlarm}`, `Pigeons not deterred: ${stats.miss}`, `Sound pulses: ${stats.pulses} (motion-only sensor would use ${stats.motionPulses})`, '',
+    'Confusion matrix (rows = real, columns = AI)', ['real\\ai', ...KEYS].join('\t'), ...KEYS.map(a => [a, ...KEYS.map(b => conf[a][b])].join('\t'))];
+  const text = lines.join('\n');
+  try { await navigator.clipboard.writeText(text); $('copied').hidden = false; setTimeout(() => $('copied').hidden = true, 1600); }
+  catch(e){ const ta = document.createElement('textarea'); ta.value = text; document.body.appendChild(ta); ta.select(); try{document.execCommand('copy'); $('copied').hidden=false;}catch(_){} ta.remove(); }
+};
+matchMedia('(prefers-color-scheme: dark)').addEventListener?.('change', renderHearing);
+new MutationObserver(renderHearing).observe(document.documentElement, {attributes:true, attributeFilter:['data-theme']});
+
+
+// ---------- page navigation: Home | About | Product | Contact (+ Site map) ----------
+const PAGES = ['home','about','product','contact','sitemap'];
+function route(){
+  const id = (location.hash || '#home').slice(1) || 'home';
+  let target = document.getElementById(id);
+  let page = target ? (target.classList.contains('page') ? target : target.closest('.page')) : null;
+  if (!page){ page = document.getElementById('home'); target = page; }
+  PAGES.forEach(p => { document.getElementById(p).hidden = p !== page.id; });
+  document.querySelectorAll('.nav a').forEach(a => { if (a.dataset.page === page.id) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current'); });
+  requestAnimationFrame(() => {
+    if (target === page) window.scrollTo({top:0, behavior:'instant'});
+    else target.scrollIntoView({block:'start'});
+  });
+}
+window.addEventListener('hashchange', route);
+route();
+document.querySelectorAll('[data-copy]').forEach(b => b.addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText(b.dataset.copy); b.textContent = 'Copied'; }
+  catch(e){ const r = document.createRange(); r.selectNodeContents(b.previousElementSibling); const sel = getSelection(); sel.removeAllRanges(); sel.addRange(r); b.textContent = 'Selected'; }
+  setTimeout(() => b.textContent = 'Copy', 1800);
+}));
+
+reset();
+// warm start so the first frame already shows a working scene
+for (let i=0;i<4;i++) spawn();
+birds.forEach((b,i) => { b.x = b.tx + (i%2? 30:-30) * 0; b.y = b.ty; b.state = 'perch'; b.arrivedAt = 0; b.t = 2 + i; });
+for (let i=0;i<20;i++) birds.forEach(classify);
+renderHearing();
+let last = performance.now(), hTimer = 0;
+function loop(now){
+  const dt = Math.min(0.05, (now - last)/1000); last = now;
+  if (ui.running){ const sdt = dt*ui.speed; const n = Math.ceil(sdt/0.02); for (let i=0;i<n;i++) step(sdt/n); }
+  hTimer += dt; if (hTimer > 0.5){ hTimer = 0; renderHearing(); }
+  draw();
+  requestAnimationFrame(loop);
+}
+draw(); requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
