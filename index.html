@@ -379,35 +379,64 @@ footer.site .in{padding-block:44px 22px;display:flex;flex-direction:column;gap:3
 </section>
 
 <!-- ================= ABOUT ================= -->
+<style>
+  /* Icon and heading side by side in the goal cards */
+  .goal-head{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+  .goal-head .ico{flex:0 0 auto;margin:0}
+  .goal-head .h3{margin:0}
+  /* Responsive YouTube frame */
+  .video-frame{position:relative;width:100%;max-width:800px;aspect-ratio:16/9;margin:0 auto}
+  .video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:12px}
+</style>
+
 <section class="page" id="about" aria-labelledby="aboutTitle" hidden>
   <div class="phead"><div class="in">
     <nav class="crumbs" aria-label="Breadcrumb"><a href="#home">Home</a><span>/</span><span aria-current="page">About</span></nav>
     <h1 id="aboutTitle">Pigeons off the balcony, <em>without harm</em></h1>
-      <div align="Justify"> Pigeons are a recurring problem around cities where they gather around windows, balconies and parking areas. Their acidic excrement causes structural damage to cars and structures while making biological waste. They cause mess, noise, and may pose health risks through local parasite transmission (Sulieman et al., 2026). Existing market deterrents depend on basic motion sensors that trigger aimlessly for cats, other bird species, or wind movement, causing repeated false alarms and animal adaptation. This makes them less impactful and accurate when solving pigeon related problems. This is where SkyGuard AI shows its value, it uses an enhanced edge AI vision model on local hardware to classify pigeons before setting oW targeted, harmless distinct sounds. This helps maintain safe, clean, and sustainable neighborhoods while also providing a custom, budget friendly solution that protects property while ensuring non target animals remain completely unharmed.
-            </div></div>
+    <p style="text-align:justify">Pigeons are a recurring problem around cities where they gather around windows, balconies and parking areas. Their acidic excrement causes structural damage to cars and structures while making biological waste. They cause mess, noise, and may pose health risks through local parasite transmission (Sulieman et al., 2026). Existing market deterrents depend on basic motion sensors that trigger aimlessly for cats, other bird species, or wind movement, causing repeated false alarms and animal adaptation. This makes them less impactful and accurate when solving pigeon related problems. This is where SkyGuard AI shows its value, it uses an enhanced edge AI vision model on local hardware to classify pigeons before setting off targeted, harmless distinct sounds. This helps maintain safe, clean, and sustainable neighborhoods while also providing a custom, budget friendly solution that protects property while ensuring non target animals remain completely unharmed.</p>
+  </div></div>
+
   <div class="wrap">
+    <!-- Video -->
+    <div class="sec" id="about-video">
+      <div><p class="eyebrow">Watch</p><h2 class="h2">SkyGuard AI in action</h2></div>
+      <div class="video-frame">
+        <iframe
+          src="https://www.youtube.com/embed/AGCaQwwRDzI"
+          title="SkyGuard AI"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allowfullscreen></iframe>
+      </div>
+    </div>
+
     <div class="sec" id="about-mission">
       <div><p class="eyebrow">Our mission</p><h2 class="h2">Three goals, one device</h2></div>
       <div class="grid3">
         <div class="card goal">
-          <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"></path></svg></div>
-          <h3 class="h3">No harm to pigeons</h3>
+          <div class="goal-head">
+            <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"></path></svg></div>
+            <h3 class="h3">No harm to pigeons</h3>
+          </div>
           <p>No spikes, nets, glue or poison. Birds are never touched. A short sound pulse is enough to make a pigeon choose another place to rest.</p>
         </div>
         <div class="card goal">
-          <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path><path d="M10 20v-5h4v5"></path></svg></div>
-          <h3 class="h3">Safe property</h3>
+          <div class="goal-head">
+            <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path><path d="M10 20v-5h4v5"></path></svg></div>
+            <h3 class="h3">Safe property</h3>
+          </div>
           <p>Pigeon droppings are acidic and stain balconies, furniture and AC units, and nests can block drains and vents. Keeping pigeons away protects homes and cuts cleaning and repair costs.</p>
         </div>
         <div class="card goal">
-          <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c0-9 6-15 15-16-1 9-7 15-15 16z"></path><path d="M5 21l8-8"></path></svg></div>
-          <h3 class="h3">Clean environment</h3>
+          <div class="goal-head">
+            <div class="ico"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 21c0-9 6-15 15-16-1 9-7 15-15 16z"></path><path d="M5 21l8-8"></path></svg></div>
+            <h3 class="h3">Clean environment</h3>
+          </div>
           <p>Fewer droppings means fewer bacteria and fungi near windows and living spaces, and less use of strong cleaning chemicals on balconies.</p>
         </div>
       </div>
     </div>
 
-      
     <div class="split" id="about-problem">
       <div>
         <p class="eyebrow">The problem</p>
@@ -420,23 +449,21 @@ footer.site .in{padding-block:44px 22px;display:flex;flex-direction:column;gap:3
         <p>An AI model checks each bird the camera sees. When it is confident a bird is a pigeon, a speaker plays a short pulse in the range pigeons hear best (about 1–4 kHz), changing the sound each time so they do not get used to it. Doves, mynas, sparrows and parakeets are left alone.</p>
       </div>
     </div>
-<div class="sec" id="about-team">
+
+    <div class="sec" id="about-team">
       <div><p class="eyebrow">The team</p><h2 class="h2">Who we are</h2></div>
       <div class="card">
         <dl class="spec">
           <dt>Team name</dt><dd class="ph">Urban Guardians</dd>
           <dt>Students</dt><dd class="ph">Saeed · Rashed · Hazaa</dd>
-          <dt>Supervisor</dt><dd class="ph">Mr. Nidal </dd>
+          <dt>Supervisor</dt><dd class="ph">Mr. Nidal</dd>
           <dt>School</dt><dd>Applied Technology Schools – Abu Dhabi Boys Campus</dd>
-        
         </dl>
       </div>
-    
       <div class="row"><a class="btn ink" href="#sim">Try the live simulation</a><a class="btn soft" href="#product">See the product</a></div>
     </div>
   </div>
 </section>
-
 <!-- ================= PRODUCT ================= -->
 <section class="page" id="product" aria-labelledby="productTitle" hidden>
   <div class="phead"><div class="in">
